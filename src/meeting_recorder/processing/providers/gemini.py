@@ -24,7 +24,7 @@ _TRANSCRIPTION_TEMPERATURE = 0
 
 # Timeout for generate_content calls in milliseconds (as required by HttpOptions.timeout).
 # Gemini can take several minutes to process long audio before returning any response.
-_GENERATE_TIMEOUT_MS = 60_000  # 1 minute
+_GENERATE_TIMEOUT_MS = 180_000  # 3 minutes
 
 
 def _require_text(response, context: str) -> str:
