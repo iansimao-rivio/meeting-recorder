@@ -12,8 +12,6 @@ from gi.repository import Gtk
 from ..config import settings
 from ..config.defaults import (
     GEMINI_MODELS,
-    OPENAI_SUMMARIZATION_MODELS,
-    OPENAI_TRANSCRIPTION_MODELS,
     SUMMARIZATION_SERVICES,
     TRANSCRIPTION_SERVICES,
 )
@@ -22,8 +20,6 @@ logger = logging.getLogger(__name__)
 
 _SERVICE_LABELS = {
     "gemini": "Google Gemini",
-    "whisper": "OpenAI Whisper",
-    "gpt4o": "OpenAI GPT-4o",
     "claude": "Anthropic Claude",
 }
 
@@ -93,16 +89,6 @@ class SettingsDialog(Gtk.Dialog):
         grid.attach(self._gemini_model_combo, 1, row, 1, 1)
         row += 1
 
-        # Whisper model
-        grid.attach(Gtk.Label(label="Whisper model:", xalign=0), 0, row, 1, 1)
-        self._whisper_model_combo = self._make_combo(
-            OPENAI_TRANSCRIPTION_MODELS,
-            self._cfg.get("openai_transcription_model", OPENAI_TRANSCRIPTION_MODELS[0]),
-        )
-        self._whisper_model_combo.connect("changed", self._on_whisper_model_changed)
-        grid.attach(self._whisper_model_combo, 1, row, 1, 1)
-        row += 1
-
         # Summarization service
         grid.attach(Gtk.Label(label="Summarization:", xalign=0), 0, row, 1, 1)
         self._ss_combo = self._make_combo(
@@ -110,16 +96,6 @@ class SettingsDialog(Gtk.Dialog):
         )
         self._ss_combo.connect("changed", self._on_service_changed)
         grid.attach(self._ss_combo, 1, row, 1, 1)
-        row += 1
-
-        # GPT-4o model
-        grid.attach(Gtk.Label(label="GPT model:", xalign=0), 0, row, 1, 1)
-        self._gpt_model_combo = self._make_combo(
-            OPENAI_SUMMARIZATION_MODELS,
-            self._cfg.get("openai_summarization_model", OPENAI_SUMMARIZATION_MODELS[0]),
-        )
-        self._gpt_model_combo.connect("changed", self._on_gpt_model_changed)
-        grid.attach(self._gpt_model_combo, 1, row, 1, 1)
         row += 1
 
         # Warning label for invalid combos
@@ -151,15 +127,6 @@ class SettingsDialog(Gtk.Dialog):
         self._gemini_key_entry.set_hexpand(True)
         self._gemini_key_entry.connect("changed", lambda *_: self._validate())
         grid.attach(self._gemini_key_entry, 1, row, 1, 1)
-        row += 1
-
-        grid.attach(Gtk.Label(label="OpenAI API key:", xalign=0), 0, row, 1, 1)
-        self._openai_key_entry = Gtk.Entry()
-        self._openai_key_entry.set_visibility(False)
-        self._openai_key_entry.set_text(self._cfg.get("openai_api_key", ""))
-        self._openai_key_entry.set_hexpand(True)
-        self._openai_key_entry.connect("changed", lambda *_: self._validate())
-        grid.attach(self._openai_key_entry, 1, row, 1, 1)
         row += 1
 
         # Key warning
@@ -250,16 +217,6 @@ class SettingsDialog(Gtk.Dialog):
     def _on_gemini_model_changed(self, combo) -> None:
         self._cfg["gemini_model"] = combo.get_active_id() or GEMINI_MODELS[0]
 
-    def _on_whisper_model_changed(self, combo) -> None:
-        self._cfg["openai_transcription_model"] = (
-            combo.get_active_id() or OPENAI_TRANSCRIPTION_MODELS[0]
-        )
-
-    def _on_gpt_model_changed(self, combo) -> None:
-        self._cfg["openai_summarization_model"] = (
-            combo.get_active_id() or OPENAI_SUMMARIZATION_MODELS[0]
-        )
-
     def _on_browse_folder(self, *_) -> None:
         dialog = Gtk.FileChooserDialog(
             title="Select Output Folder",
@@ -282,19 +239,14 @@ class SettingsDialog(Gtk.Dialog):
         ts = self._ts_combo.get_active_id() or "gemini"
         ss = self._ss_combo.get_active_id() or "gemini"
         gemini_key = self._gemini_key_entry.get_text().strip()
-        openai_key = self._openai_key_entry.get_text().strip()
 
         warnings = []
 
         # Missing key checks
         if ts == "gemini" and not gemini_key:
             warnings.append("Gemini API key is required for Gemini transcription.")
-        if ts == "whisper" and not openai_key:
-            warnings.append("OpenAI API key is required for Whisper transcription.")
         if ss == "gemini" and not gemini_key:
             warnings.append("Gemini API key is required for Gemini summarization.")
-        if ss == "gpt4o" and not openai_key:
-            warnings.append("OpenAI API key is required for GPT-4o summarization.")
 
         if warnings:
             self._service_warning.set_text("\n".join(warnings))
@@ -314,14 +266,7 @@ class SettingsDialog(Gtk.Dialog):
         cfg["transcription_service"] = self._ts_combo.get_active_id() or "gemini"
         cfg["summarization_service"] = self._ss_combo.get_active_id() or "gemini"
         cfg["gemini_api_key"] = self._gemini_key_entry.get_text().strip()
-        cfg["openai_api_key"] = self._openai_key_entry.get_text().strip()
         cfg["gemini_model"] = self._gemini_model_combo.get_active_id() or GEMINI_MODELS[0]
-        cfg["openai_transcription_model"] = (
-            self._whisper_model_combo.get_active_id() or OPENAI_TRANSCRIPTION_MODELS[0]
-        )
-        cfg["openai_summarization_model"] = (
-            self._gpt_model_combo.get_active_id() or OPENAI_SUMMARIZATION_MODELS[0]
-        )
         cfg["output_folder"] = self._folder_entry.get_text().strip() or "~/meetings"
         cfg["call_detection_enabled"] = self._detection_switch.get_active()
         try:

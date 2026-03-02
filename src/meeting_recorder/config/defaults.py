@@ -8,8 +8,8 @@ CONFIG_DIR = "~/.config/meeting-recorder"
 CONFIG_FILE = "~/.config/meeting-recorder/config.json"
 DEFAULT_OUTPUT_FOLDER = "~/meetings"
 
-TRANSCRIPTION_SERVICES = ["gemini", "whisper"]
-SUMMARIZATION_SERVICES = ["gemini", "gpt4o"]
+TRANSCRIPTION_SERVICES = ["gemini"]
+SUMMARIZATION_SERVICES = ["gemini"]
 
 GEMINI_MODELS = [
     "gemini-3.1-pro",
@@ -24,16 +24,6 @@ GEMINI_MODELS = [
     "gemini-2.5-pro-exp-03-25",
 ]
 
-OPENAI_TRANSCRIPTION_MODELS = [
-    "whisper-1",
-]
-
-OPENAI_SUMMARIZATION_MODELS = [
-    "gpt-4o",
-    "gpt-4o-mini",
-    "gpt-4-turbo",
-]
-
 
 
 DEFAULT_CONFIG: dict = {
@@ -41,22 +31,10 @@ DEFAULT_CONFIG: dict = {
     "summarization_service": "gemini",
     "gemini_api_key": "",
     "gemini_model": "gemini-2.5-flash",
-    "openai_api_key": "",
-    "openai_transcription_model": "whisper-1",
-    "openai_summarization_model": "gpt-4o",
 
     "output_folder": DEFAULT_OUTPUT_FOLDER,
     "call_detection_enabled": False,
 }
-
-# OpenAI Whisper rejects files larger than 25MB. Files above this are split into
-# overlapping chunks and transcribed separately.
-WHISPER_SIZE_LIMIT = 25 * 1024 * 1024
-# Target size per chunk, kept below the limit with headroom for encoding variance.
-WHISPER_CHUNK_SIZE = 20 * 1024 * 1024
-# Each chunk overlaps the previous by this many seconds so words at the boundary
-# aren't cut off. The overlap region is skipped when assembling the final transcript.
-WHISPER_OVERLAP_SECONDS = 30
 
 # A single call start can trigger multiple source-output events (browser tabs, virtual
 # devices). This window collapses the burst into one notification.

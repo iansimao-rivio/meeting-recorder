@@ -638,12 +638,8 @@ class MainWindow(Gtk.ApplicationWindow):
         """Return error string if required API keys are missing, else None."""
         if ts == "gemini" and not cfg.get("gemini_api_key"):
             return "Gemini API key is not configured. Please open Settings."
-        if ts == "whisper" and not cfg.get("openai_api_key"):
-            return "OpenAI API key is not configured. Please open Settings."
         if ss == "gemini" and not cfg.get("gemini_api_key"):
             return "Gemini API key is not configured. Please open Settings."
-        if ss == "gpt4o" and not cfg.get("openai_api_key"):
-            return "OpenAI API key is not configured. Please open Settings."
         return None
 
     def _on_open_folder(self, *_) -> None:

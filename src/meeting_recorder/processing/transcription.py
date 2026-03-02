@@ -27,11 +27,5 @@ def create_transcription_provider(config: dict) -> TranscriptionProvider:
             api_key=config["gemini_api_key"],
             model=config.get("gemini_model", "gemini-2.5-flash"),
         )
-    elif service == "whisper":
-        from .providers.whisper import WhisperProvider
-        return WhisperProvider(
-            api_key=config["openai_api_key"],
-            model=config.get("openai_transcription_model", "whisper-1"),
-        )
     else:
         raise ValueError(f"Unknown transcription service: {service!r}")

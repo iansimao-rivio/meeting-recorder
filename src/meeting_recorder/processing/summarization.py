@@ -26,11 +26,5 @@ def create_summarization_provider(config: dict) -> SummarizationProvider:
             api_key=config["gemini_api_key"],
             model=config.get("gemini_model", "gemini-1.5-flash"),
         )
-    elif service == "gpt4o":
-        from .providers.gpt4o import GPT4oProvider
-        return GPT4oProvider(
-            api_key=config["openai_api_key"],
-            model=config.get("openai_summarization_model", "gpt-4o"),
-        )
     else:
         raise ValueError(f"Unknown summarization service: {service!r}")
