@@ -42,13 +42,6 @@ CALL_DETECTION_DEDUP_WINDOW = 10
 
 # Recording format
 AUDIO_FORMAT = "mp3"
-AUDIO_CODEC = "libmp3lame"
-AUDIO_QUALITY = "2"  # VBR quality (0=best, 9=worst); q:a 2 ≈ 190kbps
-
-# ffmpeg reads from two named pipes simultaneously. If one pipe briefly falls behind
-# (e.g. parec scheduling jitter), ffmpeg would stall without a queue buffer.
-# 512 frames gives ~11ms of headroom at 44100 Hz.
-FFMPEG_THREAD_QUEUE_SIZE = 512
 
 SUMMARIZATION_PROMPT = """\
 You are a meeting assistant. Given the following meeting transcript, produce concise, \

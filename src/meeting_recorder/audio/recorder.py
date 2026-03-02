@@ -1,12 +1,10 @@
-"""Recording thread: named pipes, parec + ffmpeg subprocess lifecycle, pause/resume."""
+"""Recording thread: ffmpeg subprocess lifecycle, pause/resume."""
 
 from __future__ import annotations
 
 import logging
-import os
 import signal
 import subprocess
-import tempfile
 import threading
 import time
 from pathlib import Path
@@ -44,12 +42,6 @@ class Recorder:
         self._on_tick = on_tick
         self._on_error = on_error
 
-        self._tmpdir: tempfile.TemporaryDirectory | None = None
-        self._mic_pipe: str | None = None
-        self._monitor_pipe: str | None = None
-
-        self._parec_mic: subprocess.Popen | None = None
-        self._parec_monitor: subprocess.Popen | None = None
         self._ffmpeg: subprocess.Popen | None = None
 
         self._timer_thread: threading.Thread | None = None
@@ -71,63 +63,7 @@ class Recorder:
 
         monitor_source = get_monitor_source(sink)
 
-        # Named pipes let parec and ffmpeg stream audio between processes without
-        # buffering the entire recording to disk. A 1-hour session at 192kbps
-        # would produce ~85MB in a temp file; a pipe has no storage cost.
-        self._tmpdir = tempfile.TemporaryDirectory(prefix="meeting-recorder-")
-        tmpdir = self._tmpdir.name
-        self._mic_pipe = os.path.join(tmpdir, "mic.pipe")
-        self._monitor_pipe = os.path.join(tmpdir, "monitor.pipe")
-        os.mkfifo(self._mic_pipe)
-        os.mkfifo(self._monitor_pipe)
-
-        # parec must be started BEFORE ffmpeg. open() on a named pipe blocks until
-        # both the reader and writer ends are connected. If ffmpeg started first it
-        # would block waiting for the pipe writer, and this thread would never reach
-        # the parec Popen calls.
-        try:
-            self._parec_mic = subprocess.Popen(
-                [
-                    "parec",
-                    "--device", mic_source,
-                    "--format=s16le",
-                    "--rate=44100",
-                    "--channels=1",
-                    "--raw",
-                    self._mic_pipe,
-                ],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-            )
-            self._parec_monitor = subprocess.Popen(
-                [
-                    "parec",
-                    "--device", monitor_source,
-                    "--format=s16le",
-                    "--rate=44100",
-                    "--channels=1",
-                    "--raw",
-                    self._monitor_pipe,
-                ],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-            )
-        except FileNotFoundError:
-            self._cleanup()
-            raise RecordingError(
-                "parec not found. Install pulseaudio-utils or pipewire-pulse."
-            )
-
-        # Give parec a moment to open the write end of each pipe before ffmpeg
-        # tries to open the read end. Without this, ffmpeg's open() can race with
-        # parec's open(), causing a brief ENXIO on the read side.
-        time.sleep(0.3)
-
-        cmd = build_ffmpeg_command(
-            self._mic_pipe,
-            self._monitor_pipe,
-            self._output_path,
-        )
+        cmd = build_ffmpeg_command(mic_source, monitor_source, self._output_path)
         try:
             self._ffmpeg = subprocess.Popen(
                 cmd,
@@ -135,10 +71,8 @@ class Recorder:
                 stderr=subprocess.PIPE,
             )
         except FileNotFoundError:
-            self._cleanup()
             raise RecordingError("ffmpeg not found. Please install ffmpeg.")
 
-        # Start the timer thread
         self._stop_event.clear()
         self._paused = False
         self._elapsed = 0
@@ -147,33 +81,34 @@ class Recorder:
         )
         self._timer_thread.start()
 
-        # Monitor thread to detect unexpected ffmpeg exit
         threading.Thread(target=self._monitor_ffmpeg, daemon=True).start()
 
         logger.info("Recording started → %s", self._output_path)
 
     def pause(self) -> None:
-        """Pause recording by sending SIGSTOP to parec processes.
-
-        We pause parec (the data source) rather than ffmpeg. If we stopped ffmpeg,
-        the named pipes would fill up (Linux pipes buffer ~64KB), causing parec to
-        block and potentially corrupt the audio stream. SIGSTOP on parec freezes
-        data production; ffmpeg then naturally blocks on empty pipes without overflow.
-        """
+        """Pause recording by sending SIGSTOP to ffmpeg."""
         with self._lock:
             if self._paused:
                 return
             self._paused = True
-        self._signal_parec(signal.SIGSTOP)
+        if self._ffmpeg and self._ffmpeg.poll() is None:
+            try:
+                self._ffmpeg.send_signal(signal.SIGSTOP)
+            except ProcessLookupError:
+                pass
         logger.info("Recording paused")
 
     def resume(self) -> None:
-        """Resume recording by sending SIGCONT to parec processes."""
+        """Resume recording by sending SIGCONT to ffmpeg."""
         with self._lock:
             if not self._paused:
                 return
             self._paused = False
-        self._signal_parec(signal.SIGCONT)
+        if self._ffmpeg and self._ffmpeg.poll() is None:
+            try:
+                self._ffmpeg.send_signal(signal.SIGCONT)
+            except ProcessLookupError:
+                pass
         logger.info("Recording resumed")
 
     def stop(self) -> None:
@@ -181,23 +116,15 @@ class Recorder:
         logger.info("Stopping recording...")
         self._stop_event.set()
 
-        # Resume parec before terminating it: a SIGSTOP'd process can't receive
-        # SIGTERM, so it would hang in the proc.wait() call below indefinitely.
-        if self._paused:
-            self._signal_parec(signal.SIGCONT)
+        # Resume ffmpeg before terminating: a SIGSTOP'd process can't receive SIGTERM.
+        if self._paused and self._ffmpeg and self._ffmpeg.poll() is None:
+            try:
+                self._ffmpeg.send_signal(signal.SIGCONT)
+            except ProcessLookupError:
+                pass
 
-        # Terminate parec processes
-        for proc in (self._parec_mic, self._parec_monitor):
-            if proc and proc.poll() is None:
-                proc.terminate()
-                try:
-                    proc.wait(timeout=3)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-
-        # Terminating parec closes the write ends of the pipes. ffmpeg sees EOF on
-        # both inputs and exits cleanly after flushing the MP3 encoder and trailer.
         if self._ffmpeg and self._ffmpeg.poll() is None:
+            self._ffmpeg.terminate()
             try:
                 self._ffmpeg.wait(timeout=30)
             except subprocess.TimeoutExpired:
@@ -208,7 +135,7 @@ class Recorder:
         if self._timer_thread:
             self._timer_thread.join(timeout=2)
 
-        self._cleanup()
+        self._ffmpeg = None
         logger.info("Recording stopped. File: %s", self._output_path)
 
     @property
@@ -223,19 +150,9 @@ class Recorder:
     # Internal
     # ------------------------------------------------------------------
 
-    def _signal_parec(self, sig: signal.Signals) -> None:
-        for proc in (self._parec_mic, self._parec_monitor):
-            if proc and proc.poll() is None:
-                try:
-                    proc.send_signal(sig)
-                except ProcessLookupError:
-                    pass
-
     def _timer_loop(self) -> None:
         while not self._stop_event.is_set():
             time.sleep(1)
-            # Re-check after the sleep: stop() may have been called while we slept,
-            # and we should not increment elapsed or fire on_tick for that extra second.
             if not self._stop_event.is_set():
                 with self._lock:
                     paused = self._paused
@@ -258,16 +175,3 @@ class Recorder:
             if self._on_error:
                 self._on_error(msg)
             self._stop_event.set()
-
-    def _cleanup(self) -> None:
-        if self._tmpdir:
-            try:
-                self._tmpdir.cleanup()
-            except Exception:
-                pass
-            self._tmpdir = None
-        self._mic_pipe = None
-        self._monitor_pipe = None
-        self._parec_mic = None
-        self._parec_monitor = None
-        self._ffmpeg = None
