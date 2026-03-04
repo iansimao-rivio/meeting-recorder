@@ -1,4 +1,4 @@
-"""Main window with state machine: IDLE → RECORDING → PAUSED → PROCESSING → IDLE."""
+"""Main window with state machine: IDLE → RECORDING → PAUSED → COUNTDOWN → PROCESSING → IDLE."""
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ class State(Enum):
     IDLE = auto()
     RECORDING = auto()
     PAUSED = auto()
+    COUNTDOWN = auto()   # 5s grace period after Stop before transcription begins
     PROCESSING = auto()
 
 
@@ -55,6 +56,10 @@ class MainWindow(Gtk.ApplicationWindow):
         # threads compare their gen_id to this before calling back to the UI; a mismatch
         # means the user cancelled, and the result is silently discarded.
         self._pipeline_gen = 0
+        self._countdown_remaining: int = 0
+        # Set when the background recorder.stop() thread completes, so the
+        # pipeline thread can wait for it before starting transcription.
+        self._recorder_done = threading.Event()
 
         self._build_ui()
         self._transition(State.IDLE)
@@ -283,16 +288,23 @@ class MainWindow(Gtk.ApplicationWindow):
             cancel_btn.connect("clicked", lambda *_: self.on_cancel_clicked())
             self._button_box.pack_start(cancel_btn, False, False, 0)
 
+        elif state == State.COUNTDOWN:
+            self._title_entry.set_sensitive(False)
+            self._spinner.stop()
+            self._spinner.hide()
+            self._output_box.hide()
+
+            cancel_btn = Gtk.Button(label="Cancel")
+            cancel_btn.connect("clicked", lambda *_: self.on_cancel_countdown_clicked())
+            cancel_btn.get_style_context().add_class("destructive-action")
+            self._button_box.pack_start(cancel_btn, False, False, 0)
+
         elif state == State.PROCESSING:
             self._status_label.set_text(status or "Processing…")
             self._title_entry.set_sensitive(False)
             self._spinner.show()
             self._spinner.start()
             self._output_box.hide()
-
-            cancel_btn = Gtk.Button(label="Cancel")
-            cancel_btn.connect("clicked", lambda *_: self.on_cancel_processing_clicked())
-            self._button_box.pack_start(cancel_btn, False, False, 0)
 
         self._button_box.show_all()
 
@@ -303,6 +315,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 State.IDLE: "idle",
                 State.RECORDING: "recording",
                 State.PAUSED: "paused",
+                State.COUNTDOWN: "idle",
                 State.PROCESSING: "processing",
             }
             try:
@@ -433,19 +446,67 @@ class MainWindow(Gtk.ApplicationWindow):
         assert_main_thread()
         if self._state not in (State.RECORDING, State.PAUSED) or not self._recorder:
             return
+
         self._pipeline_gen += 1
-        self._transition(State.PROCESSING, status="Stopping recording…")
-        # Move the recorder to a local variable and clear self._recorder before
-        # launching the thread. This prevents a second click from calling stop()
-        # on the same recorder instance while the first stop is still in progress.
+        gen_id = self._pipeline_gen
         recorder = self._recorder
         self._recorder = None
-        gen_id = self._pipeline_gen
+
+        # Stop the recorder in the background (ffmpeg flush can take a moment).
+        # The pipeline won't start until both the countdown expires AND this finishes.
+        self._recorder_done.clear()
+        threading.Thread(target=self._stop_recorder_bg, args=(recorder,), daemon=True).start()
+
+        # Show 5s countdown — user can cancel before transcription begins.
+        self._countdown_remaining = 5
+        self._transition(State.COUNTDOWN, status=f"Starting transcription in 5s…")
+        GLib.timeout_add(1000, self._countdown_tick, gen_id)
+
+    def _stop_recorder_bg(self, recorder) -> None:
+        """Background: stop ffmpeg and signal that it's done."""
+        try:
+            recorder.stop()
+        except Exception as exc:
+            logger.error("Error stopping recorder: %s", exc)
+        finally:
+            self._recorder_done.set()
+
+    def _countdown_tick(self, gen_id: int) -> bool:
+        """Called every 1s by GLib. Decrements counter; fires pipeline when it hits 0."""
+        if gen_id != self._pipeline_gen:
+            return GLib.SOURCE_REMOVE  # cancelled
+
+        self._countdown_remaining -= 1
+
+        if self._countdown_remaining > 0:
+            self._status_label.set_text(
+                f"Starting transcription in {self._countdown_remaining}s…"
+            )
+            return GLib.SOURCE_CONTINUE
+
+        # Countdown expired — wait for recorder to finish, then run pipeline.
+        self._transition(State.PROCESSING, status="Transcribing…")
         threading.Thread(
-            target=self._stop_and_process,
-            args=(recorder, gen_id),
-            daemon=True,
+            target=self._wait_and_process, args=(gen_id,), daemon=True
         ).start()
+        return GLib.SOURCE_REMOVE
+
+    def _wait_and_process(self, gen_id: int) -> None:
+        """Background: wait for recorder.stop() to complete, then run pipeline."""
+        self._recorder_done.wait(timeout=35)
+        if gen_id != self._pipeline_gen:
+            return
+        idle_call(self._update_status, "Transcribing…")
+        self._run_pipeline(gen_id)
+
+    def on_cancel_countdown_clicked(self) -> None:
+        """User cancelled during the 5s grace period — discard recording, go to IDLE."""
+        assert_main_thread()
+        if self._state != State.COUNTDOWN:
+            return
+        self._pipeline_gen += 1  # invalidates the countdown tick and any pipeline gen_id
+        self._transition(State.IDLE, status="Transcription cancelled.")
+        logger.info("Transcription cancelled during countdown.")
 
     def on_cancel_processing_clicked(self) -> None:
         """Abandon the in-flight pipeline; background thread results will be ignored."""
@@ -521,21 +582,6 @@ class MainWindow(Gtk.ApplicationWindow):
         assert_main_thread()
         self._transition(State.IDLE, status="Recording saved (no transcription).")
         self._show_output_paths()
-
-    def _stop_and_process(self, recorder, gen_id: int) -> None:
-        """Background: stop recorder, then run AI pipeline."""
-        try:
-            recorder.stop()
-        except Exception as exc:
-            if gen_id == self._pipeline_gen:
-                idle_call(self._show_error, f"Failed to stop recording: {exc}")
-            return
-
-        if gen_id != self._pipeline_gen:
-            return  # cancelled while stopping
-
-        idle_call(self._update_status, "Transcribing…")
-        self._run_pipeline(gen_id)
 
     def _run_pipeline(self, gen_id: int) -> None:
         """Background: run transcription + summarization pipeline."""
