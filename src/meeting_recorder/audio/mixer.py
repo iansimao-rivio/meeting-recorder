@@ -44,6 +44,28 @@ def build_ffmpeg_command(
     ]
 
 
+def build_ffmpeg_command_mic_only(
+    source: str,
+    output_path: str | Path,
+) -> list[str]:
+    """
+    Build ffmpeg command that records the microphone only (no system audio).
+    Used when recording with speakers — capturing the monitor would cause echo
+    since the speaker output is already picked up by the mic.
+    """
+    return [
+        "ffmpeg",
+        "-hide_banner",
+        "-y",
+        "-thread_queue_size", "4096",
+        "-f", "pulse", "-i", source,
+        "-af", "highpass=f=80",
+        "-acodec", "libmp3lame",
+        "-q:a", "2",
+        str(output_path),
+    ]
+
+
 def build_split_command(
     input_path: str | Path,
     segment_path_template: str,

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 from .devices import get_default_source, get_default_sink, get_monitor_source
-from .mixer import build_ffmpeg_command
+from .mixer import build_ffmpeg_command, build_ffmpeg_command_mic_only
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +35,12 @@ class Recorder:
     def __init__(
         self,
         output_path: Path,
+        mode: str = "headphones",
         on_tick: Callable[[int], None] | None = None,
         on_error: Callable[[str], None] | None = None,
     ) -> None:
         self._output_path = output_path
+        self._mode = mode  # "headphones" = mic + monitor; "speaker" = mic only
         self._on_tick = on_tick
         self._on_error = on_error
 
@@ -57,13 +59,17 @@ class Recorder:
     def start(self) -> None:
         """Start recording. Raises RecordingError on failure."""
         mic_source = get_default_source()
-        sink = get_default_sink()
-        if not mic_source or not sink:
-            raise RecordingError("No audio devices found. Check audio setup.")
+        if not mic_source:
+            raise RecordingError("No microphone found. Check audio setup.")
 
-        monitor_source = get_monitor_source(sink)
-
-        cmd = build_ffmpeg_command(mic_source, monitor_source, self._output_path)
+        if self._mode == "speaker":
+            cmd = build_ffmpeg_command_mic_only(mic_source, self._output_path)
+        else:
+            sink = get_default_sink()
+            if not sink:
+                raise RecordingError("No audio output device found. Check audio setup.")
+            monitor_source = get_monitor_source(sink)
+            cmd = build_ffmpeg_command(mic_source, monitor_source, self._output_path)
         try:
             self._ffmpeg = subprocess.Popen(
                 cmd,

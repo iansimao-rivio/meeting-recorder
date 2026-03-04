@@ -45,6 +45,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         self._state = State.IDLE
         self._recorder = None
+        self._recording_mode: str = "headphones"
         self._audio_path: Path | None = None
         self._transcript_path: Path | None = None
         self._notes_path: Path | None = None
@@ -189,20 +190,39 @@ class MainWindow(Gtk.ApplicationWindow):
             self._spinner.stop()
             self._spinner.hide()
             self._output_box.hide()
-            record_btn = Gtk.Button(label=" Record")
-            record_btn.set_image(
+
+            idle_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+
+            record_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            record_row.set_homogeneous(True)
+
+            headphones_btn = Gtk.Button(label="Record (Headphones)")
+            headphones_btn.set_image(
                 Gtk.Image.new_from_icon_name("media-record", Gtk.IconSize.BUTTON)
             )
-            record_btn.connect("clicked", lambda *_: self.on_record_clicked())
-            record_btn.get_style_context().add_class("suggested-action")
-            self._button_box.pack_start(record_btn, False, False, 0)
+            headphones_btn.set_tooltip_text("Record mic + system audio. Use when wearing headphones.")
+            headphones_btn.connect("clicked", lambda *_: self.on_record_headphones_clicked())
+            headphones_btn.get_style_context().add_class("suggested-action")
+            record_row.pack_start(headphones_btn, True, True, 0)
+
+            speaker_btn = Gtk.Button(label="Record (Speaker)")
+            speaker_btn.set_image(
+                Gtk.Image.new_from_icon_name("audio-volume-high", Gtk.IconSize.BUTTON)
+            )
+            speaker_btn.set_tooltip_text("Record mic only. Use when on speaker to avoid echo.")
+            speaker_btn.connect("clicked", lambda *_: self.on_record_speaker_clicked())
+            record_row.pack_start(speaker_btn, True, True, 0)
+
+            idle_vbox.pack_start(record_row, False, False, 0)
 
             existing_btn = Gtk.Button(label=" Use Existing Recording")
             existing_btn.set_image(
                 Gtk.Image.new_from_icon_name("document-open", Gtk.IconSize.BUTTON)
             )
             existing_btn.connect("clicked", lambda *_: self.on_use_existing_clicked())
-            self._button_box.pack_start(existing_btn, False, False, 0)
+            idle_vbox.pack_start(existing_btn, False, False, 0)
+
+            self._button_box.pack_start(idle_vbox, False, False, 0)
 
         elif state == State.RECORDING:
             self._status_label.set_text(status or "Recording…")
@@ -294,7 +314,15 @@ class MainWindow(Gtk.ApplicationWindow):
     # Button handlers (called from main thread or via idle_call)
     # ------------------------------------------------------------------
 
-    def on_record_clicked(self) -> None:
+    def on_record_headphones_clicked(self) -> None:
+        self._recording_mode = "headphones"
+        self._start_recording()
+
+    def on_record_speaker_clicked(self) -> None:
+        self._recording_mode = "speaker"
+        self._start_recording()
+
+    def _start_recording(self) -> None:
         assert_main_thread()
         if self._state != State.IDLE:
             return
@@ -328,6 +356,7 @@ class MainWindow(Gtk.ApplicationWindow):
         from ..audio.recorder import Recorder, RecordingError
         self._recorder = Recorder(
             output_path=audio,
+            mode=self._recording_mode,
             on_tick=self._on_tick,
             on_error=self._on_recording_error,
         )
@@ -337,7 +366,8 @@ class MainWindow(Gtk.ApplicationWindow):
             self._show_error(str(exc))
             return
 
-        self._transition(State.RECORDING)
+        mode_label = "headphones" if self._recording_mode == "headphones" else "speaker"
+        self._transition(State.RECORDING, status=f"Recording… ({mode_label} mode)")
 
     def on_use_existing_clicked(self) -> None:
         assert_main_thread()
