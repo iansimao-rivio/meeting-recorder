@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 _SERVICE_LABELS = {
     "gemini": "Google Gemini",
-    "claude": "Anthropic Claude",
 }
 
 
