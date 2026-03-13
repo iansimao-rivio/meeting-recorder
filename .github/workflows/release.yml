@@ -128,7 +128,7 @@ jobs:
             echo "Origin: Meeting Recorder"
             echo "Label: Meeting Recorder"
             echo "Codename: stable"
-            echo "Architectures: all"
+            echo "Architectures: amd64"
             echo "Components: main"
             echo "Description: Meeting Recorder APT repository"
             echo "SignWith: ${FINGERPRINT}"
