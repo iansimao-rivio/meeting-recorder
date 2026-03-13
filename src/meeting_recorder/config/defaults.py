@@ -17,25 +17,25 @@ SUMMARIZATION_SERVICES = ["gemini"]
 LLM_TIMEOUT_OPTIONS = [1, 2, 3, 5, 8, 10]
 
 GEMINI_MODELS = [
-    "gemini-3.1-pro",
-    "gemini-3-pro-preview",
+    # Latest.
+    "gemini-pro-latest",
+    "gemini-flash-latest",
+    "gemini-flash-lite-latest",
+    # 3.x
+    "gemini-3.1-pro-preview",
     "gemini-3-flash-preview",
-    "gemini-2.5-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
+    "gemini-3.1-flash-lite-preview",
+    # 2.5
     "gemini-2.5-pro",
-    "gemini-2.5-pro-preview-03-25",
-    "gemini-2.5-pro-exp-03-25",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
 ]
-
-
 
 DEFAULT_CONFIG: dict = {
     "transcription_service": "gemini",
     "summarization_service": "gemini",
     "gemini_api_key": "",
-    "gemini_model": "gemini-2.5-flash",
+    "gemini_model": "gemini-flash-latest",
 
     "output_folder": DEFAULT_OUTPUT_FOLDER,
     "recording_quality": "high",
