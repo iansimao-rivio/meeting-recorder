@@ -150,13 +150,21 @@ class SNITray(TrayBackend):
         icon_dir = xdg_data / "icons" / "hicolor" / "scalable" / "apps"
         icon_dir.mkdir(parents=True, exist_ok=True)
 
+        import shutil
         src_dir = Path(_ICONS_DIR)
         for svg in src_dir.glob("meeting-recorder*.svg"):
             dst = icon_dir / svg.name
-            if not dst.exists():
-                import shutil
+            if not dst.exists() or not self._icons_match(svg, dst):
                 shutil.copy2(svg, dst)
                 logger.debug("Installed icon: %s", dst)
+
+    @staticmethod
+    def _icons_match(src: Path, dst: Path) -> bool:
+        """Check if installed icon matches source (by size)."""
+        try:
+            return src.stat().st_size == dst.stat().st_size
+        except OSError:
+            return False
 
     def _register_with_watcher(self) -> None:
         """Register this item with org.kde.StatusNotifierWatcher."""

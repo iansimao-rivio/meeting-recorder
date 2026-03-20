@@ -8,56 +8,110 @@ from .base import TrayBackend
 logger = logging.getLogger(__name__)
 
 # Colors
-_MIC_COLOR = (220, 220, 220)
-_DOT_RED = (229, 57, 53)
-_DOT_MAROON = (93, 22, 22)
-_DOT_YELLOW = (253, 216, 53)       # #FDD835
-_DOT_DARK_YELLOW = (93, 85, 22)    # #5D5516
+_PURPLE = (108, 92, 231)           # #6c5ce7
+_LAVENDER = (162, 155, 254)        # #a29bfe
+_DARK_BG = (26, 26, 46)           # #1a1a2e
+_TEAL = (0, 206, 201)             # #00cec9
+_GOLD = (253, 203, 110)           # #fdcb6e
+_DARK_PURPLE = (72, 52, 212)      # #4834d4
+_BELLY_IDLE = (162, 155, 254, 90) # lavender, low alpha
+_BELLY_REC = (229, 57, 53)        # #E53935
+_BELLY_REC_DIM = (93, 22, 22)     # #5D1616
+_BELLY_PROC = (253, 216, 53)      # #FDD835
+_BELLY_PROC_DIM = (125, 106, 16)  # #7D6A10
 
 
-def _draw_mic_icon(size: int = 64, dot_color: tuple | None = None):
-    """Draw a microphone tray icon with optional recording dot."""
+def _draw_cat_icon(size: int = 64, belly_color: tuple | None = None):
+    """Draw the cat mascot tray icon with belly indicator."""
     from PIL import Image, ImageDraw
 
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     s = size / 64  # scale factor
 
-    # Mic capsule (rounded rect)
-    draw.rounded_rectangle(
-        [int(21 * s), int(5 * s), int(43 * s), int(33 * s)],
-        radius=int(11 * s),
-        fill=_MIC_COLOR,
+    # Tail
+    _draw_curve(draw, [(17, 52), (8, 50), (7, 42), (6, 36), (10, 34)], _PURPLE, s, 2.5)
+
+    # Body
+    _cx, _cy = int(32 * s), int(44 * s)
+    _rx, _ry = int(16 * s), int(14 * s)
+    draw.ellipse([_cx - _rx, _cy - _ry, _cx + _rx, _cy + _ry], fill=_PURPLE)
+
+    # Belly (indicator zone)
+    bx, by = int(32 * s), int(47 * s)
+    brx, bry = int(10 * s), int(9 * s)
+    if belly_color:
+        draw.ellipse([bx - brx, by - bry, bx + brx, by + bry], fill=belly_color)
+    else:
+        draw.ellipse([bx - brx, by - bry, bx + brx, by + bry], fill=_BELLY_IDLE)
+
+    # Head
+    hx, hy, hr = int(32 * s), int(26 * s), int(13 * s)
+    draw.ellipse([hx - hr, hy - hr, hx + hr, hy + hr], fill=_PURPLE)
+
+    # Ears
+    draw.polygon([_p(22, s), _p(18, 5, s), _p(26, 14, s)], fill=_PURPLE)
+    draw.polygon([_p(42, s), _p(46, 5, s), _p(38, 14, s)], fill=_PURPLE)
+    # Inner ears
+    draw.polygon([_p(23, 17, s), _p(20, 8, s), _p(25, 14, s)], fill=_LAVENDER + (102,))
+    draw.polygon([_p(41, 17, s), _p(44, 8, s), _p(39, 14, s)], fill=_LAVENDER + (102,))
+
+    # Eyes
+    for ex in [27, 37]:
+        ecx, ecy = int(ex * s), int(25 * s)
+        erx, ery = int(4 * s), int(4.5 * s)
+        draw.ellipse([ecx - erx, ecy - ery, ecx + erx, ecy + ery], fill=_DARK_BG)
+        irx, iry = int(1.5 * s), int(3.5 * s)
+        draw.ellipse([ecx - irx, ecy - iry, ecx + irx, ecy + iry], fill=_TEAL)
+        prx, pry = int(0.6 * s) or 1, int(3 * s)
+        draw.ellipse([ecx - prx, ecy - pry, ecx + prx, ecy + pry], fill=_DARK_BG)
+
+    # Nose
+    nx = int(32 * s)
+    draw.polygon(
+        [(int(30.5 * s), int(29 * s)), (int(33.5 * s), int(29 * s)),
+         (nx, int(31 * s))],
+        fill=_DARK_PURPLE,
     )
 
-    # Holder arc (U-shape under capsule)
-    # Draw as the bottom half of an ellipse
-    bbox = [int(15 * s), int(12 * s), int(49 * s), int(50 * s)]
-    draw.arc(bbox, start=0, end=180, fill=_MIC_COLOR, width=max(1, int(4.5 * s)))
+    # Headphone band
+    _draw_curve(draw, [(19, 22), (19, 10), (32, 7), (45, 10), (45, 22)], _GOLD, s, 2.5)
 
-    # Stem (short vertical line from arc bottom to base)
-    cx = int(32 * s)
-    draw.line(
-        [cx, int(50 * s), cx, int(55 * s)],
-        fill=_MIC_COLOR, width=max(1, int(4.5 * s)),
-    )
+    # Headphone cups
+    for cx in [14, 43]:
+        x0, y0 = int(cx * s), int(20 * s)
+        w, h = int(7 * s), int(9 * s)
+        draw.rounded_rectangle([x0, y0, x0 + w, y0 + h], radius=int(3 * s), fill=_GOLD)
 
-    # Base (horizontal line)
-    draw.line(
-        [int(23 * s), int(58 * s), int(41 * s), int(58 * s)],
-        fill=_MIC_COLOR, width=max(1, int(4.5 * s)),
-    )
-
-    # Recording dot overlay
-    if dot_color:
-        r = int(10 * s)
-        cx_dot, cy_dot = int(52 * s), int(52 * s)
-        draw.ellipse(
-            [cx_dot - r, cy_dot - r, cx_dot + r, cy_dot + r],
-            fill=dot_color,
-        )
+    # Mini notepad
+    nx0, ny0 = int(46 * s), int(38 * s)
+    nw, nh = int(10 * s), int(13 * s)
+    draw.rounded_rectangle([nx0, ny0, nx0 + nw, ny0 + nh],
+                           radius=max(1, int(1.5 * s)), fill=(255, 255, 255, 204))
+    lw = max(1, int(1 * s))
+    draw.line([int(48 * s), int(42 * s), int(55 * s), int(42 * s)],
+              fill=_PURPLE, width=lw)
+    draw.line([int(48 * s), int(45 * s), int(54 * s), int(45 * s)],
+              fill=_PURPLE + (128,), width=lw)
 
     return img
+
+
+def _p(*coords_and_scale):
+    """Helper: scale coordinate pairs. _p(x, y, s) or _p(x_as_ear, s)."""
+    if len(coords_and_scale) == 2:
+        x, s = coords_and_scale
+        return (int(x * s), int(18 * s))  # ear default y
+    x, y, s = coords_and_scale
+    return (int(x * s), int(y * s))
+
+
+def _draw_curve(draw, points, color, s, width):
+    """Draw connected line segments as a simple curve approximation."""
+    scaled = [(int(x * s), int(y * s)) for x, y in points]
+    w = max(1, int(width * s))
+    for i in range(len(scaled) - 1):
+        draw.line([scaled[i], scaled[i + 1]], fill=color, width=w)
 
 
 class PystrayBackend(TrayBackend):
@@ -73,11 +127,11 @@ class PystrayBackend(TrayBackend):
         self._pystray = pystray
 
         # Pre-render icon variants
-        self._icon_idle = _draw_mic_icon()
-        self._icon_rec_bright = _draw_mic_icon(dot_color=_DOT_RED)
-        self._icon_rec_dim = _draw_mic_icon(dot_color=_DOT_MAROON)
-        self._icon_proc_bright = _draw_mic_icon(dot_color=_DOT_YELLOW)
-        self._icon_proc_dim = _draw_mic_icon(dot_color=_DOT_DARK_YELLOW)
+        self._icon_idle = _draw_cat_icon()
+        self._icon_rec_bright = _draw_cat_icon(belly_color=_BELLY_REC)
+        self._icon_rec_dim = _draw_cat_icon(belly_color=_BELLY_REC_DIM)
+        self._icon_proc_bright = _draw_cat_icon(belly_color=_BELLY_PROC)
+        self._icon_proc_dim = _draw_cat_icon(belly_color=_BELLY_PROC_DIM)
 
         self._blink_on = True
         self._blink_mode = "recording"

@@ -11,7 +11,7 @@ class Notifier(ABC):
         self,
         summary: str,
         body: str = "",
-        icon: str = "audio-input-microphone",
+        icon: str = "meeting-recorder",
     ) -> None:
         """Send a desktop notification."""
         ...

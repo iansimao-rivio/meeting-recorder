@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 140 140">
+  <!-- Deep Purple Cat - Full Logo (high-res) -->
+  <!-- Tail -->
+  <path d="M38,110 Q20,105 18,90 Q16,80 25,78" fill="none" stroke="#6c5ce7" stroke-width="5" stroke-linecap="round"/>
+  <!-- Body -->
+  <ellipse cx="70" cy="95" rx="32" ry="30" fill="#6c5ce7"/>
+  <!-- Belly -->
+  <ellipse cx="70" cy="100" rx="20" ry="18" fill="#a29bfe" opacity="0.45"/>
+  <!-- Head -->
+  <circle cx="70" cy="52" r="26" fill="#6c5ce7"/>
+  <!-- Ears -->
+  <polygon points="48,34 40,8 56,28" fill="#6c5ce7"/>
+  <polygon points="92,34 100,8 84,28" fill="#6c5ce7"/>
+  <!-- Inner ears -->
+  <polygon points="48,32 43,14 54,28" fill="#a29bfe" opacity="0.5"/>
+  <polygon points="92,32 97,14 86,28" fill="#a29bfe" opacity="0.5"/>
+  <!-- Eyes -->
+  <ellipse cx="58" cy="50" rx="8" ry="9" fill="#1a1a2e"/>
+  <ellipse cx="82" cy="50" rx="8" ry="9" fill="#1a1a2e"/>
+  <ellipse cx="58" cy="50" rx="3" ry="7" fill="#00cec9"/>
+  <ellipse cx="82" cy="50" rx="3" ry="7" fill="#00cec9"/>
+  <ellipse cx="58" cy="50" rx="1.2" ry="6" fill="#1a1a2e"/>
+  <ellipse cx="82" cy="50" rx="1.2" ry="6" fill="#1a1a2e"/>
+  <!-- Eye highlights -->
+  <circle cx="61" cy="47" r="1.5" fill="white" opacity="0.7"/>
+  <circle cx="85" cy="47" r="1.5" fill="white" opacity="0.7"/>
+  <!-- Nose -->
+  <polygon points="68,58 72,58 70,61" fill="#4834d4"/>
+  <!-- Mouth -->
+  <path d="M65,63 Q70,67 75,63" fill="none" stroke="#4834d4" stroke-width="1.5"/>
+  <!-- Whiskers -->
+  <line x1="35" y1="56" x2="55" y2="58" stroke="#a29bfe" stroke-width="1" opacity="0.5"/>
+  <line x1="35" y1="62" x2="55" y2="62" stroke="#a29bfe" stroke-width="1" opacity="0.5"/>
+  <line x1="85" y1="58" x2="105" y2="56" stroke="#a29bfe" stroke-width="1" opacity="0.5"/>
+  <line x1="85" y1="62" x2="105" y2="62" stroke="#a29bfe" stroke-width="1" opacity="0.5"/>
+  <!-- Headphone band -->
+  <path d="M40,44 Q40,16 70,12 Q100,16 100,44" fill="none" stroke="#fdcb6e" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- Headphone cups -->
+  <rect x="32" y="40" width="13" height="18" rx="5" fill="#fdcb6e"/>
+  <rect x="35" y="43" width="7" height="12" rx="3" fill="#f9a825"/>
+  <rect x="95" y="40" width="13" height="18" rx="5" fill="#fdcb6e"/>
+  <rect x="98" y="43" width="7" height="12" rx="3" fill="#f9a825"/>
+  <!-- Notepad -->
+  <rect x="92" y="78" width="22" height="28" rx="3" fill="white" transform="rotate(8, 103, 92)"/>
+  <line x1="96" y1="86" x2="112" y2="86" stroke="#6c5ce7" stroke-width="1.5" transform="rotate(8, 103, 92)"/>
+  <line x1="96" y1="91" x2="110" y2="91" stroke="#6c5ce7" stroke-width="1.5" transform="rotate(8, 103, 92)" opacity="0.7"/>
+  <line x1="96" y1="96" x2="107" y2="96" stroke="#6c5ce7" stroke-width="1.5" transform="rotate(8, 103, 92)" opacity="0.4"/>
+  <!-- Pencil -->
+  <line x1="90" y1="105" x2="83" y2="118" stroke="#f9a825" stroke-width="2.5" stroke-linecap="round"/>
+  <polygon points="83,118 80,122 86,120" fill="#f9a825"/>
+</svg>
