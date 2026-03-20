@@ -29,3 +29,5 @@ build/
 *.swo
 .DS_Store
 Thumbs.db
+.superpowers/
+docs/superpowers/

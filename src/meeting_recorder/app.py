@@ -42,6 +42,7 @@ class MeetingRecorderApp(Gtk.Application):
         self.window = None
         self._tray = None
         self._call_detector = None
+        self._nightlight_inhibitor = None
 
     # ------------------------------------------------------------------
     def do_startup(self) -> None:
@@ -89,17 +90,62 @@ class MeetingRecorderApp(Gtk.Application):
     # ------------------------------------------------------------------
     def _create_window(self) -> None:
         from .ui.main_window import MainWindow
-        self.window = MainWindow(application=self)
+        from .platform.registry import PlatformRegistry
+        from .config.settings import inject_api_keys
+
+        cfg = settings.load()
+        inject_api_keys(cfg)
+
+        registry = PlatformRegistry()
+
+        # Audio backend
+        audio_backend = None
+        audio_backend_name = cfg.get("audio_backend", "pulseaudio")
+        audio_backend_cls = registry.get_audio_backend(audio_backend_name)
+        if audio_backend_cls is None:
+            available = registry.available_audio_backends()
+            if available:
+                audio_backend_cls = registry.get_audio_backend(available[0])
+        if audio_backend_cls:
+            audio_backend = audio_backend_cls()
+
+        # Screen recorder
+        screen_recorder = None
+        if cfg.get("screen_recording"):
+            sr_name = cfg.get("screen_recorder", "none")
+            sr_cls = registry.get_screen_recorder(sr_name)
+            if sr_cls:
+                screen_recorder = sr_cls()
+
+        # Night light inhibitor (auto-detect)
+        from .platform.nightlight.none import NoOpNightLightInhibitor
+        nightlight_inhibitor = NoOpNightLightInhibitor()
+        nl_cls = registry.get_nightlight_inhibitor("kwin")
+        if nl_cls:
+            nl_instance = nl_cls()
+            if nl_instance.is_available():
+                nightlight_inhibitor = nl_instance
+        self._nightlight_inhibitor = nightlight_inhibitor
+
+        self.window = MainWindow(
+            application=self,
+            audio_backend=audio_backend,
+            screen_recorder=screen_recorder,
+            nightlight_inhibitor=nightlight_inhibitor,
+        )
 
         # System tray (best-effort)
         try:
             from .ui.tray import TrayIcon
+            from .utils.glib_bridge import idle_call
             self._tray = TrayIcon(self.window)
+            self._tray.set_on_activate(
+                lambda: idle_call(self.window._on_tray_activate)
+            )
         except Exception as exc:
             logger.info("Tray unavailable: %s", exc)
 
         # Call detection (if enabled)
-        cfg = settings.load()
         if cfg.get("call_detection_enabled"):
             self._start_call_detector()
 
@@ -157,4 +203,9 @@ class MeetingRecorderApp(Gtk.Application):
         # exit but the child process would otherwise become an orphan.
         if self._call_detector is not None:
             self._call_detector.stop()
+        if self._nightlight_inhibitor is not None:
+            try:
+                self._nightlight_inhibitor.uninhibit()
+            except Exception as exc:
+                logger.warning("Failed to uninhibit night light on shutdown: %s", exc)
         Gtk.Application.do_shutdown(self)

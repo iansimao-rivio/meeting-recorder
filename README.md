@@ -1,15 +1,19 @@
 # Meeting Recorder
 
-A Linux desktop applet that records meetings, transcribes them, and generates structured notes — all in a few clicks. Supports both cloud (Google Gemini) and local (Whisper + Ollama) processing.
+A Linux desktop applet that records meetings, transcribes them, and generates structured notes — all in a few clicks. Supports both cloud and local processing, with 100+ AI providers via LiteLLM.
 
 ## Features
 
-- **Record** system audio + microphone simultaneously, or microphone only
-- **Transcribe** with Google Gemini or local Whisper (timestamped, speaker-labeled transcript)
-- **Summarize** into structured Markdown notes with Google Gemini or local Ollama
-- **Local models** — run fully offline with no API key required
+- **Record** system audio + microphone simultaneously, with optional separate tracks for better diarization
+- **Transcribe** with Google Gemini, ElevenLabs Scribe v2, local Whisper, or 100+ providers via LiteLLM
+- **Summarize** with Claude Code CLI (subscription), or any LLM via LiteLLM (Gemini, Ollama, OpenAI, Anthropic, OpenRouter, etc.)
+- **LiteLLM integration** — unified access to 100+ LLM providers with a single model string
+- **Local models** — run fully offline with Whisper + Ollama, no API key required
+- **Multi-platform** — Debian/Ubuntu (PulseAudio) and Arch Linux (PipeWire/Wayland)
+- **Screen recording** — per-monitor Wayland-native recording via gpu-screen-recorder
+- **API key store** — manage all provider API keys in Settings
 - **Customizable prompts** — edit transcription and summarization prompts in Settings
-- **System tray** integration (AyatanaAppIndicator3 / pystray fallback)
+- **System tray** integration (AppIndicator / pystray fallback) with custom icon and recording indicator
 - **Call detection** — optionally monitor for active calls and get notified to start recording
 - **Start at system startup** — optionally launch automatically on login
 - **Organized output** — files saved in a dated hierarchy under your chosen output folder
@@ -24,7 +28,10 @@ Each recording session creates a folder:
     └── March/
         └── 04/
             └── 14-30_Standup/
-                ├── recording.mp3
+                ├── recording.mp3         # Combined audio
+                ├── recording_mic.mp3     # Microphone track (if separate tracks enabled)
+                ├── recording_system.mp3  # System audio track (if separate tracks enabled)
+                ├── screen-eDP-1.mp4      # Screen recording (if enabled)
                 ├── transcript.md
                 └── notes.md
 ```
@@ -33,21 +40,32 @@ When using "Use Existing Recording", transcript and notes are saved next to the 
 
 ## Requirements
 
+### Debian/Ubuntu
+
 - Debian/Ubuntu-based Linux (tested on Ubuntu 22.04+)
 - System packages installed by `install.sh`: `ffmpeg`, `pulseaudio-utils`, `pipewire-pulse`, Python 3 with GTK3 bindings
 - Python packages (installed into a venv): see `requirements.txt`
 
-Depending on which services you use:
+### Arch Linux
 
-| Service | Requirement |
+- Arch Linux with KDE Plasma / Wayland (tested on Plasma 6)
+- System packages installed by `install/install-arch.sh`: `ffmpeg`, `pipewire`, `pipewire-pulse`, `wireplumber`, Python 3 with GTK3 bindings
+- Optional: `gpu-screen-recorder` (AUR) for screen recording
+
+### Provider Requirements
+
+| Provider | Requirement |
 |---|---|
-| **Gemini** (transcription or summarization) | Free API key from [aistudio.google.com](https://aistudio.google.com) |
+| **Gemini** (transcription or summarization via LiteLLM) | API key from [aistudio.google.com](https://aistudio.google.com) |
+| **ElevenLabs Scribe v2** (transcription) | API key from [elevenlabs.io](https://elevenlabs.io) |
 | **Whisper** (local transcription) | Model downloaded from HuggingFace (~500 MB – 3 GB); NVIDIA GPU optional |
-| **Ollama** (local summarization) | [Ollama](https://ollama.com) installed and running (`ollama serve`) |
+| **Ollama** (local summarization via LiteLLM) | [Ollama](https://ollama.com) installed and running (`ollama serve`) |
+| **Claude Code CLI** (summarization) | [Claude Code](https://claude.ai/claude-code) installed and on PATH |
+| **LiteLLM** (any other provider) | Appropriate API key set in Settings → API Keys |
 
 ## Installation
 
-### Option 1: .deb package (recommended)
+### Option 1: .deb package (Debian/Ubuntu, recommended)
 
 Download the latest `.deb` from the [Releases](../../releases) page and install it:
 
@@ -64,7 +82,7 @@ To uninstall:
 sudo apt remove meeting-recorder
 ```
 
-### Option 2: install.sh (from source)
+### Option 2: install.sh (Debian/Ubuntu, from source)
 
 ```bash
 git clone <repo-url>
@@ -72,13 +90,23 @@ cd meeting-recorder
 ./install.sh
 ```
 
-`install.sh` installs all system dependencies, sets up Ollama if not already installed, and creates a Python venv with all required packages.
+### Option 3: install-arch.sh (Arch Linux)
 
-To uninstall:
+```bash
+git clone <repo-url>
+cd meeting-recorder
+install/install-arch.sh
+```
+
+Installs system deps via pacman, sets up a Python venv via uv, and auto-installs gpu-screen-recorder from AUR if yay/paru is available.
+
+### Uninstall
 
 ```bash
 ./uninstall.sh
 ```
+
+> Your recordings (`~/meetings/`) and config (`~/.config/meeting-recorder/`) are preserved.
 
 Then launch either way:
 
@@ -113,30 +141,49 @@ PYTHONPATH=src python3 -m meeting_recorder
 
 ### Transcription
 
-| Service | How it works | Requires |
+| Provider | How it works | Requires |
 |---|---|---|
-| **Google Gemini** | Audio sent to Gemini API | API key |
-| **Whisper** | Runs locally on your machine | Model downloaded in Settings → Models |
+| **Google Gemini** | Audio uploaded directly to Gemini multimodal API | API key |
+| **ElevenLabs Scribe v2** | Audio sent to ElevenLabs API, native diarization (up to 32 speakers) | API key |
+| **Whisper** | Runs locally on your machine via faster-whisper | Model downloaded in Settings → Model Config |
+| **LiteLLM** | Routes to any supported STT provider (Groq, OpenAI, Deepgram, etc.) | Provider API key |
 
 ### Summarization
 
-| Service | How it works | Requires |
+| Provider | How it works | Requires |
 |---|---|---|
-| **Google Gemini** | Text sent to Gemini API | API key |
-| **Ollama** | Runs locally via Ollama | Ollama running (`ollama serve`), model pulled in Settings → Models |
+| **Claude Code CLI** | Shells out to `claude --print`, uses your Claude Code subscription | Claude Code installed |
+| **LiteLLM** | Routes to any LLM (Gemini, Ollama, OpenAI, Anthropic, OpenRouter, etc.) | Provider API key (or Ollama running locally) |
 
-Mix and match freely — e.g. Whisper for transcription + Ollama for summarization runs fully offline with no API key.
+Mix and match freely — e.g. Whisper for transcription + Ollama via LiteLLM for summarization runs fully offline with no API key.
+
+### LiteLLM Model Strings
+
+LiteLLM routes to providers via the model string prefix:
+
+```
+gemini/gemini-2.5-flash          # Google Gemini
+ollama/phi4-mini                 # Local Ollama
+openai/gpt-4o                    # OpenAI
+anthropic/claude-sonnet-4-latest # Anthropic
+openrouter/anthropic/claude-sonnet-4  # OpenRouter
+groq/whisper-large-v3            # Groq (transcription)
+```
+
+Select from curated lists in Settings, or type any `provider/model` string.
 
 ## First-Time Setup
 
 Open **Settings** (gear icon or tray menu):
 
-1. **General tab** — choose your transcription and summarization services; set output folder and recording quality
-2. **Models tab** — configure the selected services:
-   - *Gemini*: paste your API key and choose a model
+1. **General tab** — choose your transcription and summarization providers; set output folder and recording quality. When LiteLLM is selected, a model dropdown with free-text entry appears.
+2. **Platform tab** — choose audio backend (PulseAudio/PipeWire), enable separate audio tracks, configure screen recording.
+3. **Model Config tab** — configure direct provider models:
+   - *Gemini*: choose a model
    - *Whisper*: select a model and click Download
-   - *Ollama*: set host and click Download next to your preferred model
-3. **Prompts tab** — optionally customize the transcription or summarization prompt
+   - *Ollama*: set host, select or type a model name, click Pull Model to download
+4. **API Keys tab** — add API keys for your providers (Gemini, OpenAI, ElevenLabs, etc.). Keys take effect immediately after saving.
+5. **Prompts tab** — optionally customize the transcription or summarization prompt
 
 ## Settings Reference
 
@@ -144,22 +191,33 @@ Open **Settings** (gear icon or tray menu):
 
 | Setting | Description |
 |---|---|
-| Transcription service | Gemini (cloud) or Whisper (local) |
-| Summarization service | Gemini (cloud) or Ollama (local) |
-| Start at system startup | Launch automatically on login |
-| Enable call detection | Monitor for active calls and notify you to start recording |
+| Transcription provider | Google Gemini, ElevenLabs Scribe v2, Whisper (local), or LiteLLM |
+| Summarization provider | Claude Code CLI or LiteLLM |
+| LiteLLM model | Model string (visible when LiteLLM selected) — curated list + free-text entry |
 | Output folder | Where recordings and notes are saved (default: `~/meetings`) |
 | Recording quality | Audio bitrate preset (Very High / High / Medium / Low) |
+| Processing timeout | Max time to wait for provider response (1–10 min) |
+| Start at system startup | Launch automatically on login |
+| Enable call detection | Monitor for active calls and notify you to start recording |
 
-### Models tab
+### Platform tab
+
+| Setting | Description |
+|---|---|
+| Audio backend | PulseAudio or PipeWire |
+| Separate audio tracks | Record mic and system audio as independent files |
+| Screen recording | Enable per-monitor screen recording (requires gpu-screen-recorder) |
+| Screen recorder | gpu-screen-recorder or none |
+| Monitors | "all" or comma-separated monitor names |
+| FPS | Screen recording frame rate (1–60) |
+
+### Model Config tab
 
 **Gemini**
 
 | Setting | Description |
 |---|---|
-| API key | Required when Gemini is selected for transcription or summarization |
-| Model | Gemini model to use (`gemini-flash-latest` recommended) |
-| Processing timeout | Max time to wait for a Gemini response (1–10 min) |
+| Model | Gemini model to use for direct transcription (`gemini-flash-latest` recommended) |
 
 **Whisper**
 
@@ -172,23 +230,24 @@ Available Whisper models:
 
 | Model | Size | Notes |
 |---|---|---|
-| `large-v3-turbo` | ~1.6 GB | High quality, 8× faster than large-v3 — recommended |
+| `large-v3-turbo` | ~1.6 GB | High quality, 8x faster than large-v3 — recommended |
 | `distil-large-v3` | ~1.5 GB | Fast, near-large quality |
 | `large-v3` | ~3 GB | Best accuracy, slow on CPU |
 | `medium` | ~1.5 GB | Good balance |
 | `small` | ~500 MB | Fast, lower accuracy |
 
-GPU acceleration is used automatically if CUDA libraries are present (installed by `install.sh` on NVIDIA systems). Falls back to CPU otherwise.
+GPU acceleration is used automatically if CUDA libraries are present. Falls back to CPU otherwise.
 
 **Ollama**
 
 | Setting | Description |
 |---|---|
-| Ollama model | Model to use for local summarization |
+| Ollama model | Model name (curated list + free-text for any Ollama model) |
+| Pull Model | Download a custom model from Ollama registry |
 | Ollama host | Ollama server address (default: `http://localhost:11434`) |
 | Model list | Download status and one-click download for each available model |
 
-Available Ollama models:
+Available Ollama models (curated):
 
 | Model | Size | Notes |
 |---|---|---|
@@ -198,11 +257,15 @@ Available Ollama models:
 | `llama3.1:8b` | ~5 GB | Very capable |
 | `gemma3:12b` | ~8 GB | Best quality, high RAM required |
 
+### API Keys tab
+
+Add API keys as environment variable key-value pairs. Pre-populated suggestions for common providers (Gemini, OpenAI, Anthropic, Groq, OpenRouter, ElevenLabs, Deepgram). Keys are passed directly to providers and also set as environment variables.
+
 ### Prompts tab
 
 Customize the transcription and summarization prompts. Each has a **Reset to default** button. The `{transcript}` placeholder in the summarization prompt is replaced with the transcript text.
 
-Note: transcription prompts apply to Gemini only — Whisper does not use a prompt.
+Note: transcription prompts apply to Gemini direct provider only — Whisper, ElevenLabs, and LiteLLM transcription providers do not use custom prompts.
 
 ## Workflow
 
@@ -242,10 +305,12 @@ Application logs:
 ~/.local/share/meeting-recorder/meeting-recorder.log
 ```
 
-FFmpeg (recording) logs:
-- **.deb install**: `/var/log/meeting-recorder/ffmpeg-<session-dir>.log`
-- **install.sh**: `/var/log/meeting-recorder/ffmpeg-<session-dir>.log`
-- **Dev mode**: `ffmpeg.log` inside the recording directory
+## Development
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest tests/ -v   # 54 tests
+```
 
 ## License
 
