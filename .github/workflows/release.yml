@@ -1,4 +1,4 @@
-# Release workflow — triggered by pushing a version tag
+# Release workflow — triggered by pushing a version tag or publishing a GitHub release
 #
 # One-time setup required:
 #   1. Register the 'meeting-recorder' package on https://aur.archlinux.org
@@ -17,6 +17,8 @@ on:
   push:
     tags:
       - 'v*'
+  release:
+    types: [published]
 
 jobs:
   test:
@@ -45,7 +47,11 @@ jobs:
 
       - name: Get version from tag
         id: version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          # For release events, use the tag from the release; for push events, use GITHUB_REF_NAME
+          TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          echo "VERSION=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "TAG=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Build wheel and source dist
         run: |
@@ -61,6 +67,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.TAG }}
           files: |
             dist/*.whl
             meeting-recorder-*.tar.gz
@@ -75,7 +82,9 @@ jobs:
 
       - name: Get version from tag
         id: version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          echo "VERSION=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Update PKGBUILD version
         run: |
