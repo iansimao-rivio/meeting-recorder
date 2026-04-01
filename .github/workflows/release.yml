@@ -35,9 +35,10 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-gi gir1.2-gtk-3.0 gir1.2-glib-2.0 libgirepository1.0-dev
+          sudo apt-get install -y libgirepository1.0-dev gir1.2-gtk-3.0 gir1.2-glib-2.0 libcairo2-dev pkg-config
       - name: Install and test
         run: |
+          pip install PyGObject
           pip install .[dev]
           pytest tests/ -v
 
