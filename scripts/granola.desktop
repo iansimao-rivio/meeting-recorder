@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Granola
+GenericName=Meeting Recorder
+Comment=Record, transcribe (Whisper) and summarize (Claude Code) meetings
+Exec=/home/archvarius/.local/bin/granola
+Icon=meeting-recorder-logo
+Terminal=false
+Categories=AudioVideo;Audio;Recorder;Utility;
+StartupNotify=true
+Keywords=meeting;recorder;transcribe;whisper;claude;

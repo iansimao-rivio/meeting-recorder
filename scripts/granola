@@ -1,10 +1,13 @@
 #!/bin/bash
 # granola - Linux alternative to Granola.ai
 # Auto-configures Whisper (local) + Claude Code CLI on first run
+# Detaches from the terminal so closing it doesn't kill the app
 
 VENV_DIR="$HOME/.venv/meeting"
 CONFIG_DIR="$HOME/.config/meeting-recorder"
 CONFIG_FILE="$CONFIG_DIR/config.json"
+LOG_DIR="$HOME/.local/share/meeting-recorder"
+LOG_FILE="$LOG_DIR/granola.log"
 
 if [ ! -d "$VENV_DIR" ]; then
     echo "Error: venv not found at $VENV_DIR"
@@ -29,5 +32,19 @@ EOF
     mkdir -p "$HOME/meetings"
 fi
 
-source "$VENV_DIR/bin/activate"
-exec meeting-recorder "$@"
+mkdir -p "$LOG_DIR"
+
+# Foreground mode with --fg / -f; default detaches from the terminal
+if [ "$1" = "--fg" ] || [ "$1" = "-f" ]; then
+    shift
+    source "$VENV_DIR/bin/activate"
+    exec meeting-recorder "$@"
+fi
+
+# Detach: new session, no controlling tty, stdout/stderr to log
+setsid nohup bash -c "
+    source '$VENV_DIR/bin/activate'
+    exec meeting-recorder $*
+" </dev/null >>"$LOG_FILE" 2>&1 &
+disown
+echo "granola started (PID $!) — logs: $LOG_FILE"
