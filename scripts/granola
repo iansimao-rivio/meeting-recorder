@@ -34,6 +34,10 @@ fi
 
 mkdir -p "$LOG_DIR"
 
+# Force ASCII system error messages so PyAV/faster-whisper don't trip over
+# UTF-8 strerror output on locales like pt_BR.UTF-8.
+export LC_MESSAGES=C
+
 # Foreground mode with --fg / -f; default detaches from the terminal
 if [ "$1" = "--fg" ] || [ "$1" = "-f" ]; then
     shift
@@ -43,6 +47,7 @@ fi
 
 # Detach: new session, no controlling tty, stdout/stderr to log
 setsid nohup bash -c "
+    export LC_MESSAGES=C
     source '$VENV_DIR/bin/activate'
     exec meeting-recorder $*
 " </dev/null >>"$LOG_FILE" 2>&1 &

@@ -3,7 +3,7 @@ Type=Application
 Name=Granola
 GenericName=Meeting Recorder
 Comment=Record, transcribe (Whisper) and summarize (Claude Code) meetings
-Exec=/home/archvarius/.local/bin/granola
+Exec=env LC_MESSAGES=C /home/archvarius/.local/bin/granola
 Icon=meeting-recorder-logo
 Terminal=false
 Categories=AudioVideo;Audio;Recorder;Utility;
