@@ -1,0 +1,33 @@
+#!/bin/bash
+# granola - Linux alternative to Granola.ai
+# Auto-configures Whisper (local) + Claude Code CLI on first run
+
+VENV_DIR="$HOME/.venv/meeting"
+CONFIG_DIR="$HOME/.config/meeting-recorder"
+CONFIG_FILE="$CONFIG_DIR/config.json"
+
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Error: venv not found at $VENV_DIR"
+    echo "Run: python -m venv $VENV_DIR && source $VENV_DIR/bin/activate && pip install git+https://github.com/AJV009/meeting-recorder.git PyGObject"
+    exit 1
+fi
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "First run: configuring Whisper + Claude Code..."
+    mkdir -p "$CONFIG_DIR"
+    cat > "$CONFIG_FILE" << 'EOF'
+{
+  "transcription_provider": "whisper",
+  "summarization_provider": "claude_code",
+  "whisper_model": "large-v3-turbo",
+  "audio_backend": "pipewire",
+  "output_folder": "~/meetings",
+  "recording_quality": "high",
+  "api_keys": {}
+}
+EOF
+    mkdir -p "$HOME/meetings"
+fi
+
+source "$VENV_DIR/bin/activate"
+exec meeting-recorder "$@"

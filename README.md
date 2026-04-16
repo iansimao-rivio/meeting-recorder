@@ -2,38 +2,44 @@
   <img src="src/meeting_recorder/assets/icons/meeting-recorder-logo-animated.svg" alt="Meeting Recorder" width="128" height="128">
 </p>
 
-<h1 align="center">Meeting Recorder</h1>
+<h1 align="center">Granola Linux</h1>
 
 <p align="center">
-  Record. Transcribe. Summarize.
+  Record. Transcribe. Summarize. — A Granola.ai alternative for Linux.
 </p>
 
 <p align="center">
-  <a href="https://aur.archlinux.org/packages/meeting-recorder"><img src="https://img.shields.io/aur/version/meeting-recorder" alt="AUR version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/AJV009/meeting-recorder"><img src="https://img.shields.io/badge/fork-AJV009%2Fmeeting--recorder-orange" alt="Fork"></a>
 </p>
 
 <p align="center">
-  A Linux desktop app that records meetings, transcribes them, and generates structured notes — all in a few clicks.<br>
-  Supports cloud and local AI processing, with 100+ providers via LiteLLM.<br>
+  A Linux desktop app that records meetings, transcribes them locally with <strong>Whisper</strong>,<br>
+  and summarizes them with <strong>Claude Code CLI</strong> — no cloud API keys required.<br>
   <strong>Arch Linux</strong> &middot; PipeWire + Wayland &middot; GTK3
 </p>
+
+> This is a fork of [AJV009/meeting-recorder](https://github.com/AJV009/meeting-recorder) pre-configured as a Granola.ai replacement for Linux, using local Whisper transcription and Claude Code CLI summarization.
 
 ---
 
 ## Quick Start
 
 ```bash
-# Install from AUR
-yay -S meeting-recorder    # or: paru -S meeting-recorder
+# Install in a venv
+python -m venv ~/.venv/meeting
+source ~/.venv/meeting/bin/activate
+pip install git+https://github.com/AJV009/meeting-recorder.git PyGObject
+
+# Install the `granola` launcher
+curl -o ~/.local/bin/granola https://raw.githubusercontent.com/iansimao-rivio/meeting-recorder/master/scripts/granola
+chmod +x ~/.local/bin/granola
 
 # Launch
-meeting-recorder
+granola
 ```
 
-Open **Settings**, pick your transcription and summarization providers, add API keys, and you're ready to record.
-
-> For fully offline use, select **Whisper** (transcription) + **Ollama** via LiteLLM (summarization) — no API keys needed.
+Open **Settings**, select **Whisper** for transcription and **Claude Code** for summarization — fully offline, no API keys.
 
 ---
 
