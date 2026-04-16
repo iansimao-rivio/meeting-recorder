@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"pkill -f \\\"bin/meeting-recorder\\\" 2>/dev/null; sleep 1; pgrep -af meeting-recorder | head -3 ; cp ~/.local/bin/granola ~/Área\\\\ de\\\\ trabalho/projects/Hobby/granola-linux/scripts/granola &...",
-  "error": "Exit code 144",
-  "timestamp": "2026-04-16T19:49:37.648Z",
-  "retry_count": 1
-}
