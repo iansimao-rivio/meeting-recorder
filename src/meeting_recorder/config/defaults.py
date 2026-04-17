@@ -105,8 +105,8 @@ OLLAMA_DEFAULT_HOST = "http://localhost:11434"
 
 DEFAULT_CONFIG: dict = {
     # Provider selection
-    "transcription_provider": "gemini",
-    "summarization_provider": "litellm",
+    "transcription_provider": "whisper",
+    "summarization_provider": "claude_code",
 
     # LiteLLM model strings (provider/model format)
     "litellm_transcription_model": "groq/whisper-large-v3",
