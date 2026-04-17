@@ -248,7 +248,8 @@ class MainWindow(RecordingControlsMixin, JobManagerMixin, Gtk.ApplicationWindow)
         for lbl, tip, cb in [
             ("⚙", "Settings", self._on_settings_clicked),
             ("📋", "Meetings", self._on_explorer_clicked),
-            ("×", "Close panel", lambda *_: self._set_expanded(False)),
+            ("×", "Collapse", lambda *_: self._set_expanded(False)),
+            ("⏻", "Quit", lambda *_: self.get_application().quit()),
         ]:
             b = Gtk.Button(label=lbl)
             b.get_style_context().add_class("icon-btn")
