@@ -1,260 +1,266 @@
 <p align="center">
-  <img src="src/meeting_recorder/assets/icons/meeting-recorder-logo-animated.svg" alt="Meeting Recorder" width="128" height="128">
+  <img src="src/meeting_recorder/assets/icons/meeting-recorder-logo-animated.svg" alt="Linhaça" width="128" height="128">
 </p>
 
-<h1 align="center">Granola Linux</h1>
+<h1 align="center">Linhaça</h1>
 
 <p align="center">
-  Record. Transcribe. Summarize. — A Granola.ai alternative for Linux.
-</p>
-
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://github.com/AJV009/meeting-recorder"><img src="https://img.shields.io/badge/fork-AJV009%2Fmeeting--recorder-orange" alt="Fork"></a>
+  Grave. Transcreva. Resuma. — O Granola.ai que roda no Linux.
 </p>
 
 <p align="center">
-  A Linux desktop app that records meetings, transcribes them locally with <strong>Whisper</strong>,<br>
-  and summarizes them with <strong>Claude Code CLI</strong> — no cloud API keys required.<br>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="Licença: MIT"></a>
+  <a href="https://github.com/ianpsa/granola-linux"><img src="https://img.shields.io/badge/fork-ianpsa%2Fgranola--linux-orange" alt="Fork"></a>
+</p>
+
+<p align="center">
+  App de desktop para Linux que grava reuniões, transcreve localmente com <strong>Whisper</strong><br>
+  e resume com o <strong>Claude Code CLI</strong> — sem precisar de chaves de API na nuvem.<br>
   <strong>Arch Linux</strong> &middot; PipeWire + Wayland &middot; GTK3
 </p>
 
-> This is a fork of [AJV009/meeting-recorder](https://github.com/AJV009/meeting-recorder) pre-configured as a Granola.ai replacement for Linux, using local Whisper transcription and Claude Code CLI summarization.
+> **Linhaça** é um fork do [granola-linux](https://github.com/ianpsa/granola-linux), que por sua vez é fork do [AJV009/meeting-recorder](https://github.com/AJV009/meeting-recorder).
+> O [Granola](https://granola.ai) é ótimo — mas só roda no Mac. Linhaça é a versão que realmente importa: roda no Linux, processa localmente e não manda seus áudios pra nuvem de ninguém.
 
 ---
 
-## Quick Start
+## Início Rápido
 
 ```bash
-# Install in a venv
-python -m venv ~/.venv/meeting
-source ~/.venv/meeting/bin/activate
-pip install git+https://github.com/AJV009/meeting-recorder.git PyGObject
+# Clone e instale num venv com site-packages do sistema (necessário para GTK)
+git clone https://github.com/ianpsa/granola-linux.git
+cd granola-linux
+python -m venv --system-site-packages .venv
+.venv/bin/pip install -e .
 
-# Install the `granola` launcher
-curl -o ~/.local/bin/granola https://raw.githubusercontent.com/iansimao-rivio/meeting-recorder/master/scripts/granola
-chmod +x ~/.local/bin/granola
-
-# Launch
-granola
+# Execute
+.venv/bin/python -m meeting_recorder
 ```
 
-Open **Settings**, select **Whisper** for transcription and **Claude Code** for summarization — fully offline, no API keys.
+Ou use o script de instalação completo:
+
+```bash
+./install.sh
+```
+
+Instala dependências via pacman, cria o venv com uv e instala o `gpu-screen-recorder` do AUR (se yay/paru disponível).
 
 ---
 
-## Features
+## Funcionalidades
 
-### Recording
+### Gravação
 
-- **Two modes** — *Headphones* (mic + system audio) or *Speaker* (mic only, avoids echo)
-- **Pause / Resume** mid-recording
-- **Separate audio tracks** — optionally save mic and system audio as independent files for better diarization
-- **Transcribe existing files** — drop in any audio/video file for transcription without recording
+- **Dois modos** — *Fones* (microfone + áudio do sistema) ou *Alto-falante* (só microfone, evita eco)
+- **Pausar / Retomar** durante a gravação
+- **Trilhas de áudio separadas** — salva microfone e sistema em arquivos independentes para melhor diarização
+- **Transcrever arquivos existentes** — arraste qualquer arquivo de áudio/vídeo para transcrever sem gravar
 
-### Transcription
+### Transcrição
 
-| Provider | How it works | Requires |
+| Provedor | Como funciona | Requisito |
 |---|---|---|
-| **Google Gemini** | Audio uploaded to Gemini multimodal API | API key |
-| **ElevenLabs Scribe v2** | Native diarization, up to 32 speakers | API key |
-| **Whisper** | Runs locally via faster-whisper, GPU-accelerated if CUDA available | Model download (~500 MB – 3 GB) |
-| **LiteLLM** | Routes to Groq, OpenAI, Deepgram, and more | Provider API key |
+| **Whisper** | Roda localmente via faster-whisper, acelera com GPU se CUDA disponível | Download do modelo (~500 MB – 3 GB) |
+| **Google Gemini** | Áudio enviado para a API multimodal do Gemini | Chave de API |
+| **ElevenLabs Scribe v2** | Diarização nativa, até 32 falantes | Chave de API |
+| **LiteLLM** | Roteia para Groq, OpenAI, Deepgram e outros | Chave do provedor |
 
-### Summarization
+### Sumarização
 
-| Provider | How it works | Requires |
+| Provedor | Como funciona | Requisito |
 |---|---|---|
-| **Claude Code CLI** | Shells out to `claude --print` | Claude Code subscription |
-| **LiteLLM** | Routes to Gemini, Ollama, OpenAI, Anthropic, OpenRouter, etc. | Provider API key (or local Ollama) |
+| **Claude Code CLI** | Chama `claude --print` localmente | Assinatura do Claude Code |
+| **LiteLLM** | Roteia para Gemini, Ollama, OpenAI, Anthropic, OpenRouter etc. | Chave do provedor (ou Ollama local) |
 
-Mix and match freely — e.g. Whisper + Ollama runs fully offline with no API keys.
+Combine à vontade — Whisper + Ollama roda 100% offline, sem nenhuma chave de API.
 
-### Screen Recording
+### Gravação de Tela
 
-- **Per-monitor** Wayland-native capture via gpu-screen-recorder
-- **Merge with audio** — optionally combine screen recording + audio into a single video
-- **Night light inhibition** — automatically pauses KDE night light during recording for accurate colors
+- Captura Wayland nativa **por monitor** via gpu-screen-recorder
+- **Mesclar com áudio** — combina gravação de tela + áudio num único vídeo
+- **Inibição de luz noturna** — pausa automaticamente o night light do KDE durante a gravação para cores precisas
 
-### Meeting Explorer
+### Explorador de Reuniões
 
-- Browse all recorded meetings in a searchable list
-- **AI-generated titles** — auto-name meetings from their notes, or generate titles manually
-- **Inline rename** — double-click to rename any meeting
-- Open folders, delete recordings, bulk-select
+- Lista todas as reuniões gravadas com busca
+- **Títulos gerados por IA** — nomeia reuniões automaticamente a partir das notas, ou gera manualmente
+- **Renomear inline** — duplo clique para renomear qualquer reunião
+- Abre pastas, exclui gravações, seleção em massa
 
-### Smart Features
+### Recursos Inteligentes
 
-- **Call detection** — monitors PipeWire for active calls and notifies you to start recording
-- **Auto-title** — AI generates a short title from your meeting notes after processing
-- **Artifact cleanup** — choose which output files to keep (audio, transcripts, screen recordings, notes)
-- **GPU memory management** — automatically unloads models between pipeline steps to prevent OOM on limited VRAM
-- **System tray** — StatusNotifierItem on KDE (pystray fallback), configurable click actions, background job status
-- **Autostart** — optionally launch on login
+- **Detecção de chamadas** — monitora o PipeWire por chamadas ativas e notifica para começar a gravar
+- **Título automático** — IA gera um título curto a partir das notas após o processamento
+- **Limpeza de artefatos** — escolha quais arquivos de saída manter (áudio, transcrições, gravações de tela, notas)
+- **Gerenciamento de memória GPU** — descarrega modelos automaticamente entre etapas para evitar OOM em GPUs limitadas
+- **Bandeja do sistema** — StatusNotifierItem no KDE (fallback pystray), ações configuráveis, status de jobs em segundo plano
+- **Inicialização automática** — opcionalmente inicia no login
 
 ---
 
-## How It Works
+## Como Funciona
 
-1. Click **Record (Headphones)** or **Record (Speaker)** to start
-2. Pause / Resume as needed — a timer shows elapsed time
-3. Click **Stop** — transcription and summarization run automatically
-4. Browse results in the app or open the output folder
+1. Clique em **Gravar (Fones)** ou **Gravar (Alt-falante)** para iniciar
+2. Pause / Retome conforme necessário — um timer mostra o tempo decorrido
+3. Clique em **Parar** — transcrição e sumarização rodam automaticamente
+4. Veja os resultados no app ou abra a pasta de saída
 
-Each session saves to a dated hierarchy:
+Cada sessão é salva numa hierarquia por data:
 
 ```
 ~/meetings/
 └── 2026/
-    └── March/
+    └── Março/
         └── 04/
             └── 14-30_Standup/
-                ├── recording.mp3              # Combined audio
-                ├── recording_mic.mp3          # Mic track (if separate tracks)
-                ├── recording_system.mp3       # System track (if separate tracks)
-                ├── screen-eDP-1.mp4           # Screen recording (if enabled)
-                ├── screen-eDP-1_merged.mp4    # Screen + audio merged (if enabled)
+                ├── recording.mp3              # Áudio combinado
+                ├── recording_mic.mp3          # Trilha do microfone (se separadas)
+                ├── recording_system.mp3       # Trilha do sistema (se separadas)
+                ├── screen-eDP-1.mp4           # Gravação de tela (se ativado)
+                ├── screen-eDP-1_merged.mp4    # Tela + áudio mesclados (se ativado)
                 ├── transcript.md
                 └── notes.md
 ```
 
 ---
 
-## Providers & Model Strings
+## Provedores e Modelos
 
-LiteLLM routes to providers via the model string prefix:
+O LiteLLM roteia via prefixo no nome do modelo:
 
 ```
 gemini/gemini-2.5-flash              # Google Gemini
-ollama/phi4-mini                     # Local Ollama
+ollama/phi4-mini                     # Ollama local
 openai/gpt-4o                        # OpenAI
 anthropic/claude-sonnet-4-latest     # Anthropic
 openrouter/anthropic/claude-sonnet-4 # OpenRouter
-groq/whisper-large-v3                # Groq (transcription)
+groq/whisper-large-v3                # Groq (transcrição)
 ```
 
-Select from curated lists in Settings, or type any `provider/model` string.
+Selecione nas listas em Configurações, ou digite qualquer string `provedor/modelo`.
 
-| Provider | Requirement |
+| Provedor | Requisito |
 |---|---|
-| **Gemini** | API key from [aistudio.google.com](https://aistudio.google.com) |
-| **ElevenLabs** | API key from [elevenlabs.io](https://elevenlabs.io) |
-| **Whisper** | Model downloaded in Settings → Model Config |
-| **Ollama** | [Ollama](https://ollama.com) installed and running |
-| **Claude Code** | [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code/overview) installed and on PATH |
-| **Other LiteLLM providers** | API key set in Settings → API Keys |
+| **Gemini** | Chave de API em [aistudio.google.com](https://aistudio.google.com) |
+| **ElevenLabs** | Chave de API em [elevenlabs.io](https://elevenlabs.io) |
+| **Whisper** | Modelo baixado em Configurações → Config. de Modelos |
+| **Ollama** | [Ollama](https://ollama.com) instalado e rodando |
+| **Claude Code** | [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code/overview) instalado e no PATH |
+| **Outros provedores LiteLLM** | Chave configurada em Configurações → Chaves de API |
 
 ---
 
-## Installation
+## Instalação
 
-### AUR (recommended)
-
-```bash
-yay -S meeting-recorder
-# or
-paru -S meeting-recorder
-```
-
-### From Source
+### A partir do Fonte
 
 ```bash
-git clone https://github.com/AJV009/meeting-recorder.git
-cd meeting-recorder
+git clone https://github.com/ianpsa/granola-linux.git
+cd granola-linux
 ./install.sh
 ```
 
-Installs system deps via pacman, sets up a Python venv via uv, and auto-installs gpu-screen-recorder from AUR if yay/paru is available.
+Instala dependências via pacman, configura um venv Python via uv e instala o gpu-screen-recorder do AUR se yay/paru estiver disponível.
 
-### Uninstall
+### Desenvolvimento
+
+```bash
+git clone https://github.com/ianpsa/granola-linux.git
+cd granola-linux
+python3 -m venv .venv --system-site-packages
+.venv/bin/pip install -e ".[dev]"
+.venv/bin/python -m meeting_recorder
+```
+
+### Desinstalar
 
 ```bash
 ./uninstall.sh
 ```
 
-> Your recordings (`~/meetings/`) and config (`~/.config/meeting-recorder/`) are preserved.
+> Suas gravações (`~/meetings/`) e configurações (`~/.config/meeting-recorder/`) são preservadas.
 
-### Requirements
+### Requisitos
 
-- Arch Linux with PipeWire (tested on KDE Plasma 6 / Wayland)
+- Arch Linux com PipeWire (testado no KDE Plasma 6 / Wayland)
 - `ffmpeg`, `pipewire`, `pipewire-pulse`, `wireplumber`, Python 3, GTK3
-- Optional: `gpu-screen-recorder` (AUR) for screen recording
+- Opcional: `gpu-screen-recorder` (AUR) para gravação de tela
 
 ---
 
-## Configuration
+## Configurações
 
-Open **Settings** from the gear icon or system tray menu. Settings are organized into tabs:
+Abra **Configurações** pelo ícone de engrenagem ou menu da bandeja. As configurações estão organizadas em abas:
 
-| Tab | What it controls |
+| Aba | O que controla |
 |---|---|
-| **General** | Transcription/summarization providers, LiteLLM model, output folder, quality, timeout, autostart, call detection, auto-title |
-| **Platform** | Separate audio tracks, screen recording (monitors, FPS, merge), night light inhibition |
-| **Model Config** | Gemini model, Whisper model download, Ollama model + host + pull |
-| **API Keys** | Provider API keys (Gemini, OpenAI, Anthropic, Groq, OpenRouter, ElevenLabs, Deepgram) |
-| **Prompts** | Custom transcription and summarization prompts with reset-to-default |
-| **Artifacts** | Choose which output files to keep after processing |
-| **Tray** | Default click action when idle and when recording |
+| **Geral** | Provedores de transcrição/sumarização, modelo LiteLLM, pasta de saída, qualidade, timeout, inicialização automática, detecção de chamadas, título automático |
+| **Plataforma** | Trilhas de áudio separadas, gravação de tela (monitores, FPS, mesclar), inibição de luz noturna |
+| **Config. de Modelos** | Modelo Gemini, download do modelo Whisper, modelo + host + pull do Ollama |
+| **Chaves de API** | Chaves de API dos provedores (Gemini, OpenAI, Anthropic, Groq, OpenRouter, ElevenLabs, Deepgram) |
+| **Prompts** | Prompts customizados de transcrição e sumarização com reset ao padrão |
+| **Artefatos** | Escolha quais arquivos de saída manter após o processamento |
+| **Bandeja** | Ação padrão ao clicar na bandeja quando ocioso e quando gravando |
 
 <details>
-<summary><strong>Whisper models</strong></summary>
+<summary><strong>Modelos Whisper</strong></summary>
 
-| Model | Size | Notes |
+| Modelo | Tamanho | Notas |
 |---|---|---|
-| `large-v3-turbo` | ~1.6 GB | High quality, 8x faster than large-v3 — recommended |
-| `distil-large-v3` | ~1.5 GB | Fast, near-large quality |
-| `large-v3` | ~3 GB | Best accuracy, slow on CPU |
-| `medium` | ~1.5 GB | Good balance |
-| `small` | ~500 MB | Fast, lower accuracy |
+| `large-v3-turbo` | ~1,6 GB | Alta qualidade, 8x mais rápido que large-v3 — recomendado |
+| `distil-large-v3` | ~1,5 GB | Rápido, qualidade próxima ao large |
+| `large-v3` | ~3 GB | Melhor precisão, lento na CPU |
+| `medium` | ~1,5 GB | Bom equilíbrio |
+| `small` | ~500 MB | Rápido, menor precisão |
 
-GPU acceleration is automatic if CUDA is available.
+Aceleração por GPU é automática se CUDA estiver disponível.
 
 </details>
 
 <details>
-<summary><strong>Ollama models (curated)</strong></summary>
+<summary><strong>Modelos Ollama (curados)</strong></summary>
 
-| Model | Size | Notes |
+| Modelo | Tamanho | Notas |
 |---|---|---|
-| `phi4-mini` | ~3 GB | Lightest, good quality |
-| `gemma3:4b` | ~4 GB | Good quality |
-| `qwen2.5:7b` | ~5 GB | Very capable |
-| `llama3.1:8b` | ~5 GB | Very capable |
-| `gemma3:12b` | ~8 GB | Best quality, needs more RAM |
+| `phi4-mini` | ~3 GB | Mais leve, boa qualidade |
+| `gemma3:4b` | ~4 GB | Boa qualidade |
+| `qwen2.5:7b` | ~5 GB | Muito capaz |
+| `llama3.1:8b` | ~5 GB | Muito capaz |
+| `gemma3:12b` | ~8 GB | Melhor qualidade, precisa de mais RAM |
 
 </details>
 
 <details>
-<summary><strong>Prompt customization</strong></summary>
+<summary><strong>Personalização de prompts</strong></summary>
 
-Edit transcription and summarization prompts in Settings → Prompts. Each has a **Reset to default** button. The `{transcript}` placeholder in the summarization prompt is replaced with the transcript text.
+Edite os prompts de transcrição e sumarização em Configurações → Prompts. Cada um tem um botão **Restaurar padrão**. O placeholder `{transcript}` no prompt de sumarização é substituído pelo texto da transcrição.
 
-Note: transcription prompts apply to Gemini direct provider only — Whisper, ElevenLabs, and LiteLLM providers do not use custom prompts.
+Nota: prompts de transcrição se aplicam apenas ao provedor Gemini direto — Whisper, ElevenLabs e LiteLLM não usam prompts customizados.
 
 </details>
 
 ---
 
-## Tips & Troubleshooting
+## Dicas e Solução de Problemas
 
 <details>
-<summary><strong>Noise reduction</strong></summary>
+<summary><strong>Redução de ruído</strong></summary>
 
-Enable PipeWire's WebRTC noise suppression:
+Ative a supressão de ruído WebRTC do PipeWire:
 
-**Temporary (current session):**
+**Temporário (sessão atual):**
 ```bash
 pactl load-module module-echo-cancel aec_method=webrtc noise_suppression=true
 ```
 
-**Permanent** — create `~/.config/pipewire/pipewire-pulse.conf.d/echo-cancel.conf`:
+**Permanente** — crie `~/.config/pipewire/pipewire-pulse.conf.d/echo-cancel.conf`:
 ```
 pulse.cmd = [
   { cmd = "load-module" args = "module-echo-cancel aec_method=webrtc noise_suppression=true" flags = [] }
 ]
 ```
 
-Then restart PipeWire:
+Depois reinicie o PipeWire:
 ```bash
 systemctl --user restart pipewire pipewire-pulse
 ```
@@ -271,35 +277,22 @@ systemctl --user restart pipewire pipewire-pulse
 </details>
 
 <details>
-<summary><strong>Recovering corrupted screen recordings</strong></summary>
+<summary><strong>Recuperar gravações de tela corrompidas</strong></summary>
 
-If a screen recording is missing the moov atom (e.g. due to a crash), you can attempt recovery with ffmpeg:
-
-```bash
-ffmpeg -i corrupted.mp4 -c copy recovered.mp4
-```
+Se uma gravação de tela estiver sem o moov atom (ex.: por crash), veja o guia completo em [docs/recuperar-gravacoes-corrompidas.md](docs/recuperar-gravacoes-corrompidas.md).
 
 </details>
 
 ---
 
-## Development
+## Testes
 
-```bash
-git clone https://github.com/AJV009/meeting-recorder.git
-cd meeting-recorder
-python3 -m venv .venv --system-site-packages
-.venv/bin/pip install -e ".[dev]"
-PYTHONPATH=src python3 -m meeting_recorder
-```
-
-Run tests:
 ```bash
 python -m pytest tests/ -v
 ```
 
 ---
 
-## License
+## Licença
 
 MIT

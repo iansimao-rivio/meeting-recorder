@@ -127,7 +127,7 @@ separator { background-color: rgba(255,255,255,0.1); min-height: 1px; }
 class MainWindow(RecordingControlsMixin, JobManagerMixin, Gtk.ApplicationWindow):
     def __init__(self, audio_backend=None, screen_recorder=None,
                  nightlight_inhibitor=None, **kwargs) -> None:
-        super().__init__(title="Meeting Recorder", **kwargs)
+        super().__init__(title="Linhaça", **kwargs)
 
         self._audio_backend = audio_backend
         self._screen_recorder = screen_recorder

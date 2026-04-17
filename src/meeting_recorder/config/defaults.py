@@ -4,8 +4,8 @@ Defines application-wide constants and default configuration settings. This incl
 
 from __future__ import annotations
 
-APP_ID = "io.github.ajv009.meeting-recorder"
-APP_NAME = "Meeting Recorder"
+APP_ID = "io.github.ianpsa.linhaca"
+APP_NAME = "Linhaça"
 CONFIG_DIR = "~/.config/meeting-recorder"
 CONFIG_FILE = "~/.config/meeting-recorder/config.json"
 DEFAULT_OUTPUT_FOLDER = "~/meetings"

@@ -6,7 +6,7 @@ import sys
 import setproctitle
 from .app import MeetingRecorderApp
 
-setproctitle.setproctitle("meeting-recorder")
+setproctitle.setproctitle("linhaca")
 
 
 def main():
