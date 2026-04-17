@@ -19,7 +19,7 @@
   <strong>Arch Linux</strong> &middot; PipeWire + Wayland &middot; GTK3
 </p>
 
-> **Linhaça** é um fork do [granola-linux](https://github.com/ianpsa/granola-linux), que por sua vez é fork do [AJV009/meeting-recorder](https://github.com/AJV009/meeting-recorder).
+> **Linhaça** é um fork do [AJV009/meeting-recorder](https://github.com/AJV009/meeting-recorder).
 > O [Granola](https://granola.ai) é ótimo — mas só roda no Mac. Linhaça é a versão que realmente importa: roda no Linux, processa localmente e não manda seus áudios pra nuvem de ninguém.
 
 ---
